@@ -10,8 +10,8 @@ CFLAGS = -lssl -lcrypto
 TARGETS = 123 456
 
 # Source files
-SRC1 = aes_encrypt_backup.c
-SRC2 = aria_encrypt_backup.c
+SRC1 = aes_encrypt.c
+SRC2 = aria_encrypt.c
 
 # Default target
 all: $(TARGETS)
