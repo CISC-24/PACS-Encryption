@@ -1,3 +1,4 @@
 
 # init directory
 init/
+!init/random.c
