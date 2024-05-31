@@ -61,7 +61,6 @@ int main() {
 	calibration = calibrate();
     INIT_WALL_TIME();
 
-
     unsigned char gcm_key[KEY_SIZE];
     unsigned char gcm_iv[IV_SIZE];
     unsigned char gcm_aad[AAD_SIZE];
@@ -69,7 +68,7 @@ int main() {
     long ct_size;
     int len = 0;
 
-    FILE *key_file = fopen("/home/misc/paper/gcm_key.txt", "rb");
+    FILE *key_file = fopen("../init/gcm_key.txt", "rb");
     if (key_file == NULL) {
         perror("Error opening key file");
         return EXIT_FAILURE;
@@ -77,7 +76,7 @@ int main() {
     fread(gcm_key, 1, KEY_SIZE, key_file);
     fclose(key_file);
 
-    FILE *iv_file = fopen("/home/misc/paper/gcm_iv.txt", "rb");
+    FILE *iv_file = fopen("../init/gcm_iv.txt", "rb");
     if (iv_file == NULL) {
         perror("Error opening IV file");
         return EXIT_FAILURE;
@@ -85,7 +84,7 @@ int main() {
     fread(gcm_iv, 1, IV_SIZE, iv_file);
     fclose(iv_file);
     
-    FILE *aad_file = fopen("/home/misc/paper/gcm_aad.txt", "rb");
+    FILE *aad_file = fopen("../init/gcm_aad.txt", "rb");
     if (aad_file == NULL) {
         perror("Error opening AAD file");
         return EXIT_FAILURE;
@@ -93,8 +92,8 @@ int main() {
     fread(gcm_aad, 1, AAD_SIZE, aad_file);
     fclose(aad_file);
 
-    const char *sample_path = "/home/misc/paper/sample";
-    const char *encrypted_path = "/home/misc/paper/img_crypto";
+    const char *sample_path = "../dataset/sample";
+    const char *encrypted_path = "../dataset/encrypted_file";
 
     DIR *dir = opendir(sample_path);
     if (dir == NULL) {
@@ -154,7 +153,7 @@ int main() {
                 return EXIT_FAILURE;
             }
 
-            if (!EVP_EncryptInit_ex(ctx, EVP_aes_128_gcm(), NULL, gcm_key, gcm_iv)) {
+            if (!EVP_EncryptInit_ex(ctx, EVP_aria_128_gcm(), NULL, gcm_key, gcm_iv)) {
                 ERR_print_errors_fp(stderr);
                 free(img_data);
                 free(encrypted_data);

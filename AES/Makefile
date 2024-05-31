@@ -1,4 +1,4 @@
-# Makefile for compiling aes_encrypt_backup.c and aria_encrypt_backup.c
+# Makefile for compiling aes_encrypt.c and aes_decrypt.c
 
 # Compiler
 CC = gcc
@@ -7,22 +7,22 @@ CC = gcc
 CFLAGS = -lssl -lcrypto
 
 # Targets
-TARGETS = 123 456
+TARGETS = aes_encrypt aes_decrypt
 
 # Source files
 SRC1 = aes_encrypt.c
-SRC2 = aria_encrypt.c
+SRC2 = aes_decrypt.c
 
 # Default target
 all: $(TARGETS)
 
 # Build target 1
-123: $(SRC1)
-	$(CC) -o 123 $(SRC1) $(CFLAGS)
+aes_encrypt: $(SRC1)
+	$(CC) -o aes_encrypt $(SRC1) $(CFLAGS)
 
 # Build target 2
-456: $(SRC2)
-	$(CC) -o 456 $(SRC2) $(CFLAGS)
+aes_decrypt: $(SRC2)
+	$(CC) -o aes_decrypt $(SRC2) $(CFLAGS)
 
 # Clean up generated files
 .PHONY: clean

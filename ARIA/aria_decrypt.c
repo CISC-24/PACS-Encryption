@@ -21,23 +21,45 @@
 #include <openssl/err.h>
 #include <openssl/evp.h>
 
-#define KEY_SIZE 32
+#define KEY_SIZE 16
 #define IV_SIZE 12
 #define AAD_SIZE 16
 #define TAG_SIZE 16
 #define MAX_PATH_LEN 1024
 
-static inline uint64_t cpucycles(void) {
-    uint64_t hi, lo;
-    __asm__ __volatile__ ("CPUID\n\trdtsc\n\t" : "=a" (lo), "=d"(hi));
-    return ((uint64_t)lo) | (((uint64_t)hi) << 32);
+static struct timespec start, end;
+//nanoseconds(1e-9)
+static uint64_t wal_time_tick;
+
+static inline void INIT_WALL_TIME(void)
+{
+	wal_time_tick = 0;
+}
+
+static inline void START_WALL_TIME(void)
+{
+	clock_gettime(CLOCK_REALTIME, &start);
+}
+
+static inline void END_WALL_TIME(void)
+{
+	long seconds;
+	long nanoseconds;
+
+	clock_gettime(CLOCK_REALTIME, &end);
+
+	seconds = end.tv_sec - start.tv_sec;
+	nanoseconds = end.tv_nsec - start.tv_nsec;
+
+	wal_time_tick += ((uint64_t)seconds *(uint64_t)(1e+9) + (uint64_t)nanoseconds);
 }
 
 int main() {
-    //uint64_t start = 0, end = 0, ret = 0;
-
-	unsigned int calibration, tMin = 0xFFFFFFFF, start, end, ret = 0, entire_size = 0;
+    int counter = 0, auth_tag = 0;
+	unsigned int calibration, tMin = 0xFFFFFFFF, start, end, entire_size = 0;
+    float ret = 0;
 	calibration = calibrate();
+    INIT_WALL_TIME();
     
     unsigned char gcm_key[KEY_SIZE];
     unsigned char gcm_iv[IV_SIZE];
@@ -46,7 +68,7 @@ int main() {
     long pt_size;
     int len = 0;
 
-    FILE *key_file = fopen("/home/misc/paper/gcm_key.txt", "rb");
+    FILE *key_file = fopen("../init/gcm_key.txt", "rb");
     if (key_file == NULL) {
         perror("Error opening key file");
         return EXIT_FAILURE;
@@ -54,7 +76,7 @@ int main() {
     fread(gcm_key, 1, KEY_SIZE, key_file);
     fclose(key_file);
 
-    FILE *iv_file = fopen("/home/misc/paper/gcm_iv.txt", "rb");
+    FILE *iv_file = fopen("../init/gcm_iv.txt", "rb");
     if (iv_file == NULL) {
         perror("Error opening IV file");
         return EXIT_FAILURE;
@@ -62,7 +84,7 @@ int main() {
     fread(gcm_iv, 1, IV_SIZE, iv_file);
     fclose(iv_file);
     
-    FILE *aad_file = fopen("/home/misc/paper/gcm_aad.txt", "rb");
+    FILE *aad_file = fopen("../init/gcm_aad.txt", "rb");
     if (aad_file == NULL) {
         perror("Error opening AAD file");
         return EXIT_FAILURE;
@@ -70,8 +92,8 @@ int main() {
     fread(gcm_aad, 1, AAD_SIZE, aad_file);
     fclose(aad_file);
 
-    const char *encrypted_path = "/home/misc/paper/img_crypto";
-    const char *decrypted_path = "/home/misc/paper/img_decrypto";
+    const char *encrypted_path = "../dataset/encrypted_file";
+    const char *decrypted_path = "../dataset/decrypted_file";
 
     DIR *dir = opendir(encrypted_path);
     if (dir == NULL) {
@@ -82,7 +104,6 @@ int main() {
     struct dirent *ent;
     while ((ent = readdir(dir)) != NULL) {
         if (strcmp(strrchr(ent->d_name, '.'), ".enc") == 0) {
-            int ret1 = 0;
             char enc_img_path[MAX_PATH_LEN];
             snprintf(enc_img_path, sizeof(enc_img_path), "%s/%s", encrypted_path, ent->d_name);
 
@@ -120,7 +141,9 @@ int main() {
 
 			tMin = 0xFFFFFFFF;
 			start = HiResTime();
-            //start = cpucycles();
+
+            START_WALL_TIME();
+
             /*복호화 시작*/
             EVP_CIPHER_CTX *ctx = EVP_CIPHER_CTX_new();
             if (ctx == NULL) {
@@ -131,7 +154,7 @@ int main() {
                 return EXIT_FAILURE;
             }
 
-            if (!EVP_DecryptInit_ex(ctx, EVP_aes_128_gcm(), NULL, gcm_key, gcm_iv)) {
+            if (!EVP_DecryptInit_ex(ctx, EVP_aria_128_gcm(), NULL, gcm_key, gcm_iv)) {
                 ERR_print_errors_fp(stderr);
                 free(enc_img_data);
                 free(decrypted_data);
@@ -169,8 +192,8 @@ int main() {
                 return EXIT_FAILURE;
             }
 
-            ret1 = EVP_DecryptFinal_ex(ctx, decrypted_data + len, &len);
-            if(ret1 > 0)
+            auth_tag = EVP_DecryptFinal_ex(ctx, decrypted_data + len, &len);
+            if(auth_tag > 0)
                 pt_size +=len;
             else{
                 ERR_print_errors_fp(stderr);
@@ -182,13 +205,14 @@ int main() {
             }
 
             EVP_CIPHER_CTX_free(ctx);
-            // end = cpucycles();
-            // ret += end-start;
+
             /*복호화 끝*/
+            END_WALL_TIME();
+            
             end = HiResTime();
             if (tMin > end - start - calibration)       /* keep only the minimum time */
 			tMin = end - start - calibration;
-            
+
             char dec_img_path[MAX_PATH_LEN];
             snprintf(dec_img_path, sizeof(dec_img_path), "%s/%s.dcm", decrypted_path, strtok(ent->d_name, "."));
 
@@ -199,9 +223,11 @@ int main() {
             }
             fwrite(decrypted_data, 1, pt_size, fp);
 
-            printf("[%d] %7.2f cycles/byte %ld\n", KEY_SIZE, get_cpb(tMin, img_size - TAG_SIZE), img_size - TAG_SIZE);
+        
             ret += get_cpb(tMin, img_size);
             entire_size +=img_size-TAG_SIZE;
+
+            counter++;
             fclose(fp);
             free(enc_img_data);
             free(decrypted_data);
@@ -209,9 +235,14 @@ int main() {
     }
     closedir(dir);
 
-	printf("[%d] %7.2f cycles/byte\n", KEY_SIZE, get_cpb(tMin, entire_size));
-	printf("finish. %d\n", tMin);
-	printf("finish. %d\n", ret);
+    double data_size = entire_size * 8;
+    double walltime = wal_time_tick / 1e9;
+    double Throughput =  data_size / walltime / 1e9;
+
+    printf("========== AES-128-GCM Encryption ==========\n");
+    printf("[*] clocks/byte: %10.6f\n", ret/counter);
+    printf("[*] walltime:    %10.6lf\n", walltime);
+    printf("[*] Throughput:  %10.6lf\n", Throughput);
 
     return 0;
 }
