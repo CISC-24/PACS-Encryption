@@ -1,0 +1,25 @@
+{
+    "files.associations": {
+        "aes.h": "c",
+        "deprecated.h": "c",
+        "evp.h": "c",
+        "rand.h": "c",
+        "core_names.h": "c",
+        "context.h": "c",
+        "*.inc": "c",
+        "modes.h": "c",
+        "err.h": "c",
+        "stdio.h": "c",
+        "stdlib.h": "c",
+        "array": "c",
+        "string": "c",
+        "string_view": "c",
+        "*.tcc": "c",
+        "cstdlib": "c",
+        "memory": "c",
+        "libc-header-start.h": "c",
+        "stddef.h": "c",
+        "alloca.h": "c"
+    },
+    "C_Cpp.errorSquiggles": "disabled"
+}
