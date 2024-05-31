@@ -28,7 +28,6 @@
 #define MAX_PATH_LEN 1024
 
 static struct timespec start, end;
-//nanoseconds(1e-9)
 static uint64_t wal_time_tick;
 
 static inline void INIT_WALL_TIME(void)
@@ -237,12 +236,12 @@ int main() {
 
     double data_size = entire_size * 8;
     double walltime = wal_time_tick / 1e9;
-    double Throughput =  data_size / walltime / 1e9;
+    double throughput =  data_size / walltime / 1e9;
 
-    printf("========== AES-128-GCM Encryption ==========\n");
+    printf("========== ARIA-128-GCM Encryption ==========\n");
     printf("[*] clocks/byte: %10.6f\n", ret/counter);
     printf("[*] walltime:    %10.6lf\n", walltime);
-    printf("[*] Throughput:  %10.6lf\n", Throughput);
+    printf("[*] throughput:  %10.6lf\n", throughput);
 
     return 0;
 }

@@ -5,7 +5,7 @@
 #include <string.h>
 #include <openssl/rand.h>
 
-#define KEY_SIZE 32
+#define KEY_SIZE 16
 #define IV_SIZE 12
 #define AAD_SIZE 16
 #define TAG_SIZE 16
